@@ -5,37 +5,51 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Job Finder</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0e1423;color:#f4f6fb;font-family:Arial,sans-serif}
 header{padding:24px 18px;background:#18243a}
-header h1{margin:0;font-size:25px}
+header h1{margin:0}
 header p{color:#aab6cb;font-size:14px}
 main{padding:16px}
 .card{background:#1b263b;padding:16px;border-radius:14px;margin-bottom:14px}
-label{display:block;margin:12px 0 6px;font-size:13px;color:#b9c5d8}
-input,select,button{width:100%;padding:14px;margin-top:8px;border-radius:10px;font-size:15px}
+label{display:block;margin:14px 0 6px;color:#b9c5d8;font-size:14px}
+input,select,button{width:100%;padding:13px;margin-top:8px;border-radius:10px;font-size:15px}
 input,select{background:#101b2d;color:white;border:1px solid #394965}
 button{background:#45ce91;color:#07180f;font-weight:bold;border:0}
-.quick button{background:#263650;color:#e9f1ff;margin-bottom:8px}
-.result{background:#1b263b;padding:15px;border-radius:12px;margin:12px 0}
-.result h3{margin-top:0}
+.result{background:#263650;padding:14px;border-radius:12px;margin-top:10px}
 a{display:block;text-decoration:none;color:#70dbac;background:#273953;padding:12px;border-radius:9px;margin-top:8px;text-align:center}
+.score{font-size:27px;font-weight:bold;color:#64dfa5}
+.tag{display:inline-block;background:#34435d;padding:6px 9px;border-radius:20px;margin:4px;font-size:12px}
 .note{font-size:12px;color:#9eabc0;line-height:1.6}
 </style>
 </head>
 <body>
 <header>
 <h1>🤖 AI Job Finder</h1>
-<p>Find your next career opportunity</p>
+<p>CV-based Career Match Assistant</p>
 </header>
 <main>
 
 <div class="card">
-<h3>🔎 Job Search</h3>
+<h3>📄 Upload Your CV</h3>
+<input type="file" id="cv" accept=".pdf,.txt">
+<p id="cvstatus" class="note">Upload a PDF or TXT resume to get started.</p>
+</div>
 
-<label>Job title / keywords</label>
-<input id="keyword" value="Supply Chain OR Procurement OR Order Management">
+<div class="card">
+<h3>🎯 Target Job Role</h3>
+<select id="role">
+<option value="supply">Supply Chain</option>
+<option value="procurement">Procurement / Purchase Order</option>
+<option value="order">Order Management</option>
+<option value="operations">Operations</option>
+<option value="inventory">Inventory Planning</option>
+</select>
+
+<label>Job Search Keywords</label>
+<input id="keyword" value="Supply Chain Manager">
 
 <label>Location</label>
 <select id="location">
@@ -47,54 +61,128 @@ a{display:block;text-decoration:none;color:#70dbac;background:#273953;padding:12
 <option>India</option>
 </select>
 
-<button onclick="searchJobs()">Search Jobs</button>
+<button onclick="analyze()">Analyze My CV</button>
 </div>
 
-<div class="card quick">
-<h3>⚡ Quick Search</h3>
-<button onclick="quick('Supply Chain Manager')">Supply Chain</button>
-<button onclick="quick('Procurement Purchase Order')">Procurement / PO</button>
-<button onclick="quick('Order Management')">Order Management</button>
-<button onclick="quick('Operations Manager')">Operations</button>
-<button onclick="quick('Inventory Planning')">Inventory Planning</button>
-<button onclick="quick('Supply Chain Remote')">Remote Jobs</button>
-</div>
+<div id="matchresult"></div>
 
-<div id="results"></div>
+<div class="card">
+<h3>🔎 Search Jobs</h3>
+<button onclick="searchJobs()">Open Job Search Results</button>
+<div id="searchlinks"></div>
+</div>
 
 <p class="note">
-Search links open external job websites. Verify job details, employer and posting date on the job site before applying.
+Match score is a keyword-based estimate, not an AI recruiter evaluation.
+Job search links open external websites.
 </p>
+
 </main>
 
 <script>
-function quick(term){
- document.getElementById("keyword").value=term;
- searchJobs();
+if(window.pdfjsLib){
+ pdfjsLib.GlobalWorkerOptions.workerSrc =
+ "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+let cvText = "";
+
+document.getElementById("cv").addEventListener("change", async function(){
+ const file=this.files[0];
+ if(!file)return;
+
+ const status=document.getElementById("cvstatus");
+ status.textContent="Reading CV...";
+
+ try{
+  if(file.name.toLowerCase().endsWith(".txt")){
+    cvText=await file.text();
+  }else if(file.name.toLowerCase().endsWith(".pdf")){
+    const data=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data}).promise;
+    let text="";
+    for(let i=1;i<=pdf.numPages;i++){
+      const page=await pdf.getPage(i);
+      const content=await page.getTextContent();
+      text+=content.items.map(x=>x.str).join(" ")+" ";
+    }
+    cvText=text;
+  }else{
+    throw new Error("Please select PDF or TXT file.");
+  }
+
+  status.textContent="✅ CV loaded successfully ("+
+    Math.round(cvText.length/1000)+"k characters approx.)";
+ }catch(e){
+  cvText="";
+  status.textContent="Could not read CV. Try a text-based PDF or TXT.";
+ }
+});
+
+const skillSets={
+ supply:["supply chain","erp","inventory","planning","procurement","purchase order","po","logistics","bom","manufacturing","vendor","supplier","order management","wip","excel","forecast"],
+ procurement:["procurement","purchase order","po","supplier","vendor","sourcing","negotiation","quotation","rfq","inventory","erp","supply chain","contract","purchase"],
+ order:["order management","order processing","sales order","purchase order","po","erp","customer","sla","inventory","fulfillment","quotation","bom","manufacturing"],
+ operations:["operations","process","erp","excel","reporting","inventory","supply chain","manufacturing","sla","planning","coordination","workflow","purchase order"],
+ inventory:["inventory","stock","warehouse","planning","forecast","supply chain","erp","material","logistics","replenishment","bom","wip","purchase order"]
+};
+
+function analyze(){
+ if(!cvText){
+  alert("Please upload your CV first.");
+  return;
+ }
+
+ const role=document.getElementById("role").value;
+ const skills=skillSets[role];
+ const lower=cvText.toLowerCase();
+
+ const matched=skills.filter(s=>lower.includes(s));
+ const missing=skills.filter(s=>!lower.includes(s));
+ const score=Math.round(matched.length/skills.length*100);
+
+ let html=`<div class="card">
+ <h3>📊 CV Match Report</h3>
+ <div class="score">${score}% Keyword Match</div>
+ <p>Matched ${matched.length} of ${skills.length} target keywords.</p>
+ <h4>✅ Found in CV</h4>`;
+
+ if(matched.length){
+  matched.forEach(s=>html+=`<span class="tag">${s}</span>`);
+ }else{
+  html+="<p>No target keywords detected.</p>";
+ }
+
+ html+="<h4>📌 Skills not detected</h4>";
+
+ if(missing.length){
+  missing.forEach(s=>html+=`<span class="tag">${s}</span>`);
+ }else{
+  html+="<p>All target keywords detected.</p>";
+ }
+
+ html+=`<p class="note">This is a simple keyword comparison against a role checklist. It does not evaluate actual job descriptions or verify skill proficiency.</p></div>`;
+
+ document.getElementById("matchresult").innerHTML=html;
 }
 
 function searchJobs(){
  const keyword=document.getElementById("keyword").value.trim();
  const location=document.getElementById("location").value;
- if(!keyword){
-  alert("Please enter a job title or keyword");
-  return;
- }
+ if(!keyword){alert("Enter a job title");return;}
 
- const q=encodeURIComponent(keyword+" "+location);
- const jobs=[
-  {name:"LinkedIn Jobs",url:"https://www.linkedin.com/jobs/search/?keywords="+q},
-  {name:"Indeed",url:"https://in.indeed.com/jobs?q="+encodeURIComponent(keyword)+"&l="+encodeURIComponent(location)},
-  {name:"Naukri",url:"https://www.naukri.com/"+encodeURIComponent(keyword.toLowerCase().replace(/ /g,"-"))+"-jobs-in-"+encodeURIComponent(location.toLowerCase().replace(/ /g,"-"))},
-  {name:"Google Jobs",url:"https://www.google.com/search?q="+q+" jobs"}
+ const links=[
+ {name:"LinkedIn Jobs",url:"https://www.linkedin.com/jobs/search/?keywords="+encodeURIComponent(keyword+" "+location)},
+ {name:"Indeed",url:"https://in.indeed.com/jobs?q="+encodeURIComponent(keyword)+"&l="+encodeURIComponent(location)},
+ {name:"Naukri",url:"https://www.naukri.com/"+encodeURIComponent(keyword.toLowerCase().replace(/ /g,"-"))+"-jobs-in-"+encodeURIComponent(location.toLowerCase().replace(/ /g,"-"))},
+ {name:"Google Jobs",url:"https://www.google.com/search?q="+encodeURIComponent(keyword+" jobs "+location)}
  ];
 
- let html="<div class='card'><h3>🌐 Search Results</h3><p>Search: "+keyword+"<br>Location: "+location+"</p>";
- jobs.forEach(j=>{
-  html+="<div class='result'><b>"+j.name+"</b><a href='"+j.url+"' target='_blank' rel='noopener'>Open "+j.name+" ↗</a></div>";
+ let html="";
+ links.forEach(l=>{
+ html+=`<div class="result"><b>${l.name}</b><a href="${l.url}" target="_blank" rel="noopener">Search on ${l.name} ↗</a></div>`;
  });
- html+="</div>";
- document.getElementById("results").innerHTML=html;
+ document.getElementById("searchlinks").innerHTML=html;
 }
 </script>
 </body>
