@@ -4,54 +4,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Job Finder</title>
+<title>AI Job Finder - Job Intelligence</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0e1423;color:#f4f6fb;font-family:Arial,sans-serif}
-header{padding:24px 18px;background:#18243a}
-header h1{margin:0}
+header{padding:23px 18px;background:#18243a}
+header h1{margin:0;font-size:25px}
 header p{color:#aab6cb;font-size:14px}
-main{padding:16px}
+main{padding:15px}
 .card{background:#1b263b;padding:16px;border-radius:14px;margin-bottom:14px}
 label{display:block;margin:14px 0 6px;color:#b9c5d8;font-size:14px}
-input,select,button{width:100%;padding:13px;margin-top:8px;border-radius:10px;font-size:15px}
-input,select{background:#101b2d;color:white;border:1px solid #394965}
+input,select,textarea,button{width:100%;padding:13px;margin-top:8px;border-radius:10px;font-size:15px}
+input,select,textarea{background:#101b2d;color:white;border:1px solid #394965}
+textarea{min-height:180px;resize:vertical}
 button{background:#45ce91;color:#07180f;font-weight:bold;border:0}
-.result{background:#263650;padding:14px;border-radius:12px;margin-top:10px}
-a{display:block;text-decoration:none;color:#70dbac;background:#273953;padding:12px;border-radius:9px;margin-top:8px;text-align:center}
-.score{font-size:27px;font-weight:bold;color:#64dfa5}
+.secondary{background:#2b3b56;color:#f1f5ff}
+.result{background:#253650;padding:14px;border-radius:12px;margin-top:10px}
+.score{font-size:32px;font-weight:bold;color:#64dfa5}
 .tag{display:inline-block;background:#34435d;padding:6px 9px;border-radius:20px;margin:4px;font-size:12px}
+.green{color:#65dfa5}
+.yellow{color:#ffd166}
+.red{color:#ff8585}
 .note{font-size:12px;color:#9eabc0;line-height:1.6}
+a{display:block;text-decoration:none;color:#70dbac;background:#273953;padding:12px;border-radius:9px;margin-top:8px;text-align:center}
+hr{border:0;border-top:1px solid #34445e;margin:16px 0}
 </style>
 </head>
 <body>
+
 <header>
 <h1>🤖 AI Job Finder</h1>
-<p>CV-based Career Match Assistant</p>
+<p>Job Intelligence • CV Match • Career Decision Support</p>
 </header>
+
 <main>
 
 <div class="card">
-<h3>📄 Upload Your CV</h3>
+<h3>📄 1. Upload Your CV</h3>
 <input type="file" id="cv" accept=".pdf,.txt">
-<p id="cvstatus" class="note">Upload a PDF or TXT resume to get started.</p>
+<p id="cvstatus" class="note">Upload your PDF or TXT resume. CV is processed in this browser.</p>
 </div>
 
 <div class="card">
-<h3>🎯 Target Job Role</h3>
-<select id="role">
-<option value="supply">Supply Chain</option>
-<option value="procurement">Procurement / Purchase Order</option>
-<option value="order">Order Management</option>
-<option value="operations">Operations</option>
-<option value="inventory">Inventory Planning</option>
-</select>
+<h3>💼 2. Job Details</h3>
 
-<label>Job Search Keywords</label>
-<input id="keyword" value="Supply Chain Manager">
+<label>Job Title</label>
+<input id="title" placeholder="e.g. Supply Chain Manager">
 
-<label>Location</label>
+<label>Company</label>
+<input id="company" placeholder="Company name">
+
+<label>Job Location</label>
 <select id="location">
 <option>Chennai</option>
 <option>Remote India</option>
@@ -61,20 +65,26 @@ a{display:block;text-decoration:none;color:#70dbac;background:#273953;padding:12
 <option>India</option>
 </select>
 
-<button onclick="analyze()">Analyze My CV</button>
+<label>Required Experience (years, if mentioned)</label>
+<input id="years" type="number" min="0" max="50" placeholder="e.g. 8">
+
+<label>Paste Job Description</label>
+<textarea id="jd" placeholder="Paste the full job description here..."></textarea>
+
+<button onclick="analyzeJob()">🧠 Analyze Job Match</button>
 </div>
 
-<div id="matchresult"></div>
+<div id="report"></div>
 
 <div class="card">
 <h3>🔎 Search Jobs</h3>
-<button onclick="searchJobs()">Open Job Search Results</button>
+<p class="note">Search job openings on external job sites.</p>
+<button class="secondary" onclick="searchJobs()">Open Job Search Sites</button>
 <div id="searchlinks"></div>
 </div>
 
 <p class="note">
-Match score is a keyword-based estimate, not an AI recruiter evaluation.
-Job search links open external websites.
+Match score is an estimate based on keyword coverage and experience requirements. It is not an AI recruiter decision.
 </p>
 
 </main>
@@ -87,100 +97,158 @@ if(window.pdfjsLib){
 
 let cvText = "";
 
-document.getElementById("cv").addEventListener("change", async function(){
+document.getElementById("cv").addEventListener("change",async function(){
  const file=this.files[0];
  if(!file)return;
-
  const status=document.getElementById("cvstatus");
  status.textContent="Reading CV...";
 
  try{
   if(file.name.toLowerCase().endsWith(".txt")){
-    cvText=await file.text();
+   cvText=await file.text();
   }else if(file.name.toLowerCase().endsWith(".pdf")){
-    const data=await file.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data}).promise;
-    let text="";
-    for(let i=1;i<=pdf.numPages;i++){
-      const page=await pdf.getPage(i);
-      const content=await page.getTextContent();
-      text+=content.items.map(x=>x.str).join(" ")+" ";
-    }
-    cvText=text;
+   const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+   let text="";
+   for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    text+=content.items.map(x=>x.str).join(" ")+" ";
+   }
+   cvText=text;
   }else{
-    throw new Error("Please select PDF or TXT file.");
+   throw new Error("Unsupported file");
   }
-
-  status.textContent="✅ CV loaded successfully ("+
-    Math.round(cvText.length/1000)+"k characters approx.)";
+  status.textContent="✅ CV loaded. "+cvText.length+" characters extracted.";
  }catch(e){
   cvText="";
-  status.textContent="Could not read CV. Try a text-based PDF or TXT.";
+  status.textContent="❌ CV could not be read. Try a text-based PDF or TXT file.";
  }
 });
 
-const skillSets={
- supply:["supply chain","erp","inventory","planning","procurement","purchase order","po","logistics","bom","manufacturing","vendor","supplier","order management","wip","excel","forecast"],
- procurement:["procurement","purchase order","po","supplier","vendor","sourcing","negotiation","quotation","rfq","inventory","erp","supply chain","contract","purchase"],
- order:["order management","order processing","sales order","purchase order","po","erp","customer","sla","inventory","fulfillment","quotation","bom","manufacturing"],
- operations:["operations","process","erp","excel","reporting","inventory","supply chain","manufacturing","sla","planning","coordination","workflow","purchase order"],
- inventory:["inventory","stock","warehouse","planning","forecast","supply chain","erp","material","logistics","replenishment","bom","wip","purchase order"]
+const skillGroups={
+ "Supply Chain":["supply chain","supply chain management","planning","forecast","demand planning","supply planning","logistics"],
+ "Procurement":["procurement","purchasing","sourcing","purchase order","po execution","rfq","quotation","negotiation"],
+ "Order Management":["order management","order processing","sales order","order fulfillment","order fulfilment"],
+ "Inventory":["inventory","stock management","inventory control","warehouse","replenishment","material planning"],
+ "ERP":["erp","ifs","oracle","sap","coral","salesforce"],
+ "Manufacturing":["manufacturing","production","work order","work orders","bom","bill of materials","wip","ec n","eco","ecn"],
+ "Vendor Management":["vendor management","supplier management","supplier coordination","vendor coordination"],
+ "Operations":["operations","operational excellence","process improvement","operations support","sla"],
+ "Excel & Reporting":["excel","advanced excel","pivot","vlookup","reporting","dashboard","macros"],
+ "Cross-functional":["cross functional","stakeholder","r&d","quality","production planning","coordination"]
 };
 
-function analyze(){
- if(!cvText){
-  alert("Please upload your CV first.");
-  return;
+function escapeHTML(str){
+ return String(str).replace(/[&<>"']/g,function(m){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m];
+ });
+}
+
+function analyzeJob(){
+ if(!cvText){alert("Please upload your CV first.");return;}
+ const title=document.getElementById("title").value.trim();
+ const company=document.getElementById("company").value.trim();
+ const jd=document.getElementById("jd").value.trim();
+ const yearsInput=document.getElementById("years").value;
+ if(!jd){alert("Please paste the Job Description.");return;}
+
+ const combined=(title+" "+jd).toLowerCase();
+ const cv=cvText.toLowerCase();
+
+ let matched=[],missing=[];
+ Object.entries(skillGroups).forEach(([group,terms])=>{
+  const inJD=terms.some(t=>combined.includes(t));
+  if(!inJD)return;
+  const cvFound=terms.filter(t=>cv.includes(t));
+  const cvMissed=terms.filter(t=>combined.includes(t)&&!cv.includes(t));
+  if(cvFound.length)matched.push(group+" ("+cvFound.slice(0,3).join(", ")+")");
+  if(cvMissed.length)missing.push(group+" ("+cvMissed.slice(0,3).join(", ")+")");
+ });
+
+ const jdTerms=[];
+ Object.values(skillGroups).flat().forEach(term=>{
+  if(combined.includes(term)&&!jdTerms.includes(term))jdTerms.push(term);
+ });
+ const matchedTerms=jdTerms.filter(t=>cv.includes(t));
+ const keywordScore=jdTerms.length?Math.round(matchedTerms.length/jdTerms.length*100):0;
+
+ const cvYears=11;
+ const required=Number(yearsInput||0);
+ let expScore=100, risk="Experience requirement not specified", riskClass="yellow";
+
+ if(required>0){
+  if(cvYears>=required){
+   expScore=100;
+   risk="Experience requirement appears suitable";
+   riskClass="green";
+  }else{
+   expScore=Math.max(30,Math.round(cvYears/required*100));
+   risk="Possible experience gap";
+   riskClass="yellow";
+  }
  }
 
- const role=document.getElementById("role").value;
- const skills=skillSets[role];
- const lower=cvText.toLowerCase();
+ const finalScore=jdTerms.length?
+ Math.round(keywordScore*0.8+expScore*0.2):expScore;
 
- const matched=skills.filter(s=>lower.includes(s));
- const missing=skills.filter(s=>!lower.includes(s));
- const score=Math.round(matched.length/skills.length*100);
+ let verdict,verdictClass;
+ if(finalScore>=75){verdict="🟢 APPLY";verdictClass="green";}
+ else if(finalScore>=50){verdict="🟡 MAYBE";verdictClass="yellow";}
+ else{verdict="🔴 LOW MATCH";verdictClass="red";}
 
- let html=`<div class="card">
- <h3>📊 CV Match Report</h3>
- <div class="score">${score}% Keyword Match</div>
- <p>Matched ${matched.length} of ${skills.length} target keywords.</p>
- <h4>✅ Found in CV</h4>`;
+ let seniority="Not enough information";
+ if(required>0){
+  if(required>=8)seniority="Senior-level role";
+  else if(required>=5)seniority="Mid-level role";
+  else if(required>=3)seniority="Experienced individual contributor";
+  else seniority="Junior / entry-level role";
+ }
 
+ let html="<div class='card'><h2>📊 Job Match Report</h2>";
+ html+="<div class='score'>"+finalScore+"% Match</div>";
+ html+="<h2 class='"+verdictClass+"'>"+verdict+"</h2>";
+ html+="<p><b>"+escapeHTML(title||"Job role")+"</b></p>";
+ if(company)html+="<p>🏢 "+escapeHTML(company)+"</p>";
+ html+="<hr><h3>🧩 Skill Match</h3>";
+ html+="<p>Keyword coverage: "+keywordScore+"%</p>";
+ html+="<p>Matched JD keywords: "+matchedTerms.length+" / "+jdTerms.length+"</p>";
  if(matched.length){
-  matched.forEach(s=>html+=`<span class="tag">${s}</span>`);
- }else{
-  html+="<p>No target keywords detected.</p>";
+  html+="<h4 class='green'>Skills / categories detected in CV</h4>";
+  matched.forEach(s=>html+="<span class='tag'>"+escapeHTML(s)+"</span>");
  }
-
- html+="<h4>📌 Skills not detected</h4>";
-
  if(missing.length){
-  missing.forEach(s=>html+=`<span class="tag">${s}</span>`);
- }else{
-  html+="<p>All target keywords detected.</p>";
+  html+="<h4 class='yellow'>Potential missing keywords</h4>";
+  missing.forEach(s=>html+="<span class='tag'>"+escapeHTML(s)+"</span>");
  }
+ html+="<hr><h3>👔 Experience Review</h3>";
+ html+="<p>Profile experience used for comparison: 11+ years</p>";
+ html+="<p>Role seniority: "+seniority+"</p>";
+ html+="<p class='"+riskClass+"'>"+risk+"</p>";
+ html+="<hr><h3>💡 Recommendation</h3>";
+ if(finalScore>=75){
+  html+="<p>Apply if the responsibilities, salary and location align. Tailor your CV to the important JD requirements.</p>";
+ }else if(finalScore>=50){
+  html+="<p>Review the missing keywords and responsibilities. If your actual experience covers them, update your CV and consider applying.</p>";
+ }else{
+  html+="<p>Low keyword match. Check the role carefully before spending time on an application.</p>";
+ }
+ html+="<p class='note'>This is a heuristic screening estimate. It cannot verify actual skill proficiency, employer legitimacy, or guarantee recruitment outcomes. The profile experience is set to 11 years for this prototype.</p></div>";
 
- html+=`<p class="note">This is a simple keyword comparison against a role checklist. It does not evaluate actual job descriptions or verify skill proficiency.</p></div>`;
-
- document.getElementById("matchresult").innerHTML=html;
+ document.getElementById("report").innerHTML=html;
 }
 
 function searchJobs(){
- const keyword=document.getElementById("keyword").value.trim();
+ const keyword=document.getElementById("title").value.trim()||"Supply Chain Procurement Order Management";
  const location=document.getElementById("location").value;
- if(!keyword){alert("Enter a job title");return;}
-
  const links=[
  {name:"LinkedIn Jobs",url:"https://www.linkedin.com/jobs/search/?keywords="+encodeURIComponent(keyword+" "+location)},
  {name:"Indeed",url:"https://in.indeed.com/jobs?q="+encodeURIComponent(keyword)+"&l="+encodeURIComponent(location)},
  {name:"Naukri",url:"https://www.naukri.com/"+encodeURIComponent(keyword.toLowerCase().replace(/ /g,"-"))+"-jobs-in-"+encodeURIComponent(location.toLowerCase().replace(/ /g,"-"))},
  {name:"Google Jobs",url:"https://www.google.com/search?q="+encodeURIComponent(keyword+" jobs "+location)}
  ];
-
  let html="";
  links.forEach(l=>{
- html+=`<div class="result"><b>${l.name}</b><a href="${l.url}" target="_blank" rel="noopener">Search on ${l.name} ↗</a></div>`;
+  html+="<div class='result'><b>"+l.name+"</b><a href='"+l.url+"' target='_blank' rel='noopener'>Search "+l.name+" ↗</a></div>";
  });
  document.getElementById("searchlinks").innerHTML=html;
 }
