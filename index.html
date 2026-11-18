@@ -3,233 +3,99 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Job Finder</title>
 <style>
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0e1423;
-  color: #f4f6fb;
-}
-header {
-  padding: 24px 18px;
-  background: #172238;
-}
-header h1 { margin: 0; font-size: 25px; }
-header p { color: #aab6cb; font-size: 14px; }
-main { padding: 16px; }
-.stats {
-  display: flex;
-  gap: 10px;
-}
-.stat {
-  flex: 1;
-  background: #1b263b;
-  padding: 16px 10px;
-  border-radius: 14px;
-}
-.stat b { font-size: 22px; color: #65d6a5; }
-.stat small { display: block; color: #b6c1d4; margin-top: 5px; }
-input, select, button {
-  width: 100%;
-  padding: 13px;
-  margin-top: 12px;
-  border-radius: 10px;
-  border: 1px solid #35445c;
-  font-size: 15px;
-}
-input, select {
-  background: #182338;
-  color: white;
-}
-button {
-  background: #42c78a;
-  color: #08150e;
-  border: none;
-  font-weight: bold;
-}
-.section-title {
-  margin-top: 25px;
-  margin-bottom: 12px;
-}
-.job {
-  background: #1b263b;
-  padding: 16px;
-  border-radius: 14px;
-  margin-bottom: 13px;
-  border: 1px solid #293850;
-}
-.job h3 { margin: 0 0 8px; }
-.job p { color: #b7c2d6; font-size: 14px; }
-.score {
-  color: #63dda4;
-  font-weight: bold;
-}
-.tag {
-  display: inline-block;
-  padding: 6px 9px;
-  background: #293750;
-  color: #cbd8ed;
-  border-radius: 20px;
-  font-size: 12px;
-  margin: 3px;
-}
-.save {
-  background: #34425d;
-  color: white;
-}
-footer {
-  text-align: center;
-  color: #8896ac;
-  padding: 25px;
-  font-size: 12px;
-}
+*{box-sizing:border-box}
+body{margin:0;background:#0e1423;color:#f4f6fb;font-family:Arial,sans-serif}
+header{padding:24px 18px;background:#18243a}
+header h1{margin:0;font-size:25px}
+header p{color:#aab6cb;font-size:14px}
+main{padding:16px}
+.card{background:#1b263b;padding:16px;border-radius:14px;margin-bottom:14px}
+label{display:block;margin:12px 0 6px;font-size:13px;color:#b9c5d8}
+input,select,button{width:100%;padding:14px;margin-top:8px;border-radius:10px;font-size:15px}
+input,select{background:#101b2d;color:white;border:1px solid #394965}
+button{background:#45ce91;color:#07180f;font-weight:bold;border:0}
+.quick button{background:#263650;color:#e9f1ff;margin-bottom:8px}
+.result{background:#1b263b;padding:15px;border-radius:12px;margin:12px 0}
+.result h3{margin-top:0}
+a{display:block;text-decoration:none;color:#70dbac;background:#273953;padding:12px;border-radius:9px;margin-top:8px;text-align:center}
+.note{font-size:12px;color:#9eabc0;line-height:1.6}
 </style>
 </head>
 <body>
-
 <header>
-  <h1>🤖 AI Job Finder</h1>
-  <p>Your personal career opportunity assistant</p>
+<h1>🤖 AI Job Finder</h1>
+<p>Find your next career opportunity</p>
 </header>
-
 <main>
-  <div class="stats">
-    <div class="stat">
-      <b id="total">0</b>
-      <small>Jobs found</small>
-    </div>
-    <div class="stat">
-      <b id="saved">0</b>
-      <small>Saved jobs</small>
-    </div>
-  </div>
 
-  <h3 class="section-title">🔎 Find your next job</h3>
+<div class="card">
+<h3>🔎 Job Search</h3>
 
-  <input id="keyword" placeholder="Job title or skill">
+<label>Job title / keywords</label>
+<input id="keyword" value="Supply Chain OR Procurement OR Order Management">
 
-  <select id="location">
-    <option value="all">All locations</option>
-    <option value="Chennai">Chennai</option>
-    <option value="Remote">Remote - India</option>
-    <option value="Bangalore">Bangalore</option>
-    <option value="Hyderabad">Hyderabad</option>
-  </select>
+<label>Location</label>
+<select id="location">
+<option>Chennai</option>
+<option>Remote India</option>
+<option>Bengaluru</option>
+<option>Hyderabad</option>
+<option>Coimbatore</option>
+<option>India</option>
+</select>
 
-  <button onclick="searchJobs()">Search Jobs</button>
+<button onclick="searchJobs()">Search Jobs</button>
+</div>
 
-  <h3 class="section-title">💼 Recommended jobs</h3>
-  <div id="jobs"></div>
+<div class="card quick">
+<h3>⚡ Quick Search</h3>
+<button onclick="quick('Supply Chain Manager')">Supply Chain</button>
+<button onclick="quick('Procurement Purchase Order')">Procurement / PO</button>
+<button onclick="quick('Order Management')">Order Management</button>
+<button onclick="quick('Operations Manager')">Operations</button>
+<button onclick="quick('Inventory Planning')">Inventory Planning</button>
+<button onclick="quick('Supply Chain Remote')">Remote Jobs</button>
+</div>
+
+<div id="results"></div>
+
+<p class="note">
+Search links open external job websites. Verify job details, employer and posting date on the job site before applying.
+</p>
 </main>
 
-<footer>AI Job Finder • Your career companion</footer>
-
 <script>
-const jobData = [
- {
-  title:"Supply Chain Manager",
-  company:"ABC Manufacturing",
-  location:"Chennai",
-  salary:"Salary not disclosed",
-  score:92,
-  skills:"Supply Chain, ERP, Inventory"
- },
- {
-  title:"Order Management Manager",
-  company:"XYZ Technologies",
-  location:"Chennai",
-  salary:"₹8–12 LPA (example)",
-  score:89,
-  skills:"Order Management, ERP, PO"
- },
- {
-  title:"Procurement Specialist",
-  company:"Global Solutions",
-  location:"Bangalore",
-  salary:"Salary not disclosed",
-  score:84,
-  skills:"Procurement, Vendor Management"
- },
- {
-  title:"Operations Analyst",
-  company:"Fintech Company",
-  location:"Remote",
-  salary:"Salary not disclosed",
-  score:80,
-  skills:"Operations, Excel, Reporting"
- },
- {
-  title:"Supply Chain Operations",
-  company:"India Services",
-  location:"Chennai",
-  salary:"Salary not disclosed",
-  score:87,
-  skills:"Operations, Inventory, Logistics"
- }
-];
+function quick(term){
+ document.getElementById("keyword").value=term;
+ searchJobs();
+}
 
-let savedJobs = [];
-
-function displayJobs(list) {
- const container = document.getElementById("jobs");
- container.innerHTML = "";
- document.getElementById("total").textContent = list.length;
- document.getElementById("saved").textContent = savedJobs.length;
-
- if(list.length === 0) {
-   container.innerHTML = "<p>No matching jobs found.</p>";
-   return;
+function searchJobs(){
+ const keyword=document.getElementById("keyword").value.trim();
+ const location=document.getElementById("location").value;
+ if(!keyword){
+  alert("Please enter a job title or keyword");
+  return;
  }
 
- list.forEach((job,index) => {
-   container.innerHTML += `
-    <div class="job">
-      <h3>${job.title}</h3>
-      <p>🏢 ${job.company}</p>
-      <p>📍 ${job.location}</p>
-      <p>💰 ${job.salary}</p>
-      <p class="score">⭐ Match: ${job.score}%</p>
-      <span class="tag">${job.skills}</span>
-      <button class="save" onclick="saveJob(${index})">
-        ☆ Save Job
-      </button>
-    </div>`;
+ const q=encodeURIComponent(keyword+" "+location);
+ const jobs=[
+  {name:"LinkedIn Jobs",url:"https://www.linkedin.com/jobs/search/?keywords="+q},
+  {name:"Indeed",url:"https://in.indeed.com/jobs?q="+encodeURIComponent(keyword)+"&l="+encodeURIComponent(location)},
+  {name:"Naukri",url:"https://www.naukri.com/"+encodeURIComponent(keyword.toLowerCase().replace(/ /g,"-"))+"-jobs-in-"+encodeURIComponent(location.toLowerCase().replace(/ /g,"-"))},
+  {name:"Google Jobs",url:"https://www.google.com/search?q="+q+" jobs"}
+ ];
+
+ let html="<div class='card'><h3>🌐 Search Results</h3><p>Search: "+keyword+"<br>Location: "+location+"</p>";
+ jobs.forEach(j=>{
+  html+="<div class='result'><b>"+j.name+"</b><a href='"+j.url+"' target='_blank' rel='noopener'>Open "+j.name+" ↗</a></div>";
  });
+ html+="</div>";
+ document.getElementById("results").innerHTML=html;
 }
-
-function searchJobs() {
- const keyword = document.getElementById("keyword").value.toLowerCase();
- const location = document.getElementById("location").value;
-
- const filtered = jobData.filter(job => {
-  const matchesKeyword =
-    !keyword ||
-    job.title.toLowerCase().includes(keyword) ||
-    job.skills.toLowerCase().includes(keyword);
-
- const matchesLocation =
-   location === "all" ||
-   job.location.toLowerCase().includes(location.toLowerCase());
-
- return matchesKeyword && matchesLocation;
- });
-
- displayJobs(filtered);
-}
-
-function saveJob(index) {
- const job = jobData[index];
- if(!savedJobs.some(j => j.title === job.title)) {
-   savedJobs.push(job);
- }
- document.getElementById("saved").textContent = savedJobs.length;
- alert("Job saved!");
-}
-
-displayJobs(jobData);
 </script>
 </body>
 </html>
