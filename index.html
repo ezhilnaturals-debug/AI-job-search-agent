@@ -1,257 +1,146 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Job Finder - Job Intelligence</title>
+<title>AI Job Finder</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
+:root{--bg:#0e1423;--panel:#1b263b;--panel2:#253650;--line:#394965;--text:#f4f6fb;--muted:#9eabc0;--green:#65dfa5;--yellow:#ffd166;--red:#ff8585;--accent:#45ce91}
 *{box-sizing:border-box}
-body{margin:0;background:#0e1423;color:#f4f6fb;font-family:Arial,sans-serif}
-header{padding:23px 18px;background:#18243a}
-header h1{margin:0;font-size:25px}
-header p{color:#aab6cb;font-size:14px}
-main{padding:15px}
-.card{background:#1b263b;padding:16px;border-radius:14px;margin-bottom:14px}
-label{display:block;margin:14px 0 6px;color:#b9c5d8;font-size:14px}
-input,select,textarea,button{width:100%;padding:13px;margin-top:8px;border-radius:10px;font-size:15px}
-input,select,textarea{background:#101b2d;color:white;border:1px solid #394965}
-textarea{min-height:180px;resize:vertical}
-button{background:#45ce91;color:#07180f;font-weight:bold;border:0}
-.secondary{background:#2b3b56;color:#f1f5ff}
-.result{background:#253650;padding:14px;border-radius:12px;margin-top:10px}
-.score{font-size:32px;font-weight:bold;color:#64dfa5}
-.tag{display:inline-block;background:#34435d;padding:6px 9px;border-radius:20px;margin:4px;font-size:12px}
-.green{color:#65dfa5}
-.yellow{color:#ffd166}
-.red{color:#ff8585}
-.note{font-size:12px;color:#9eabc0;line-height:1.6}
-a{display:block;text-decoration:none;color:#70dbac;background:#273953;padding:12px;border-radius:9px;margin-top:8px;text-align:center}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.45}
+header{padding:22px 16px;background:#18243a}
+header h1{margin:0;font-size:24px}
+header p{margin:6px 0 0;color:#aab6cb;font-size:14px}
+main{max-width:760px;margin:0 auto;padding:14px}
+.card{background:var(--panel);padding:16px;border-radius:14px;margin-bottom:14px}
+.card h3{margin:0 0 4px}
+label{display:block;margin:14px 0 4px;color:#b9c5d8;font-size:14px}
+input,select,textarea,button,.btn{width:100%;padding:12px;border-radius:10px;font-size:15px;font-family:inherit}
+input,select,textarea{background:#101b2d;color:var(--text);border:1px solid var(--line)}
+input[type=checkbox]{width:auto;margin-right:8px}
+input[type=range]{padding:0}
+textarea{min-height:170px;resize:vertical}
+button{background:var(--accent);color:#07180f;font-weight:700;border:0;margin-top:12px;cursor:pointer}
+button.secondary{background:#2b3b56;color:#f1f5ff}
+.btn{display:block;text-decoration:none;color:#70dbac;background:#273953;text-align:center;margin-top:8px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.row{grid-template-columns:1fr}}
+.check{display:flex;align-items:center;margin:12px 0 0;color:#b9c5d8;font-size:14px}
+.note{font-size:12.5px;color:var(--muted)}
+.small{font-size:13px;margin:10px 0 2px}
+.tag{display:inline-block;background:#34435d;padding:5px 9px;border-radius:20px;margin:3px 3px 0 0;font-size:12px}
+.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}
+.score{font-size:34px;font-weight:800}
 hr{border:0;border-top:1px solid #34445e;margin:16px 0}
+.job{background:var(--panel2);padding:13px;border-radius:12px;margin-top:10px}
+.jobtop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.badge{font-weight:800;font-size:18px;white-space:nowrap}
+details{margin-top:8px}
+summary{cursor:pointer;color:#b9c5d8;font-size:13px}
+#profile{display:none}
 </style>
 </head>
 <body>
 
 <header>
-<h1>🤖 AI Job Finder</h1>
-<p>Job Intelligence • CV Match • Career Decision Support</p>
+<h1>AI Job Finder</h1>
+<p>Your CV, your filters, ranked jobs. Nothing is preset.</p>
 </header>
 
 <main>
 
 <div class="card">
-<h3>📄 1. Upload Your CV</h3>
+<h3>1. Upload your CV</h3>
 <input type="file" id="cv" accept=".pdf,.txt">
-<p id="cvstatus" class="note">Upload your PDF or TXT resume. CV is processed in this browser.</p>
+<p id="cvstatus" class="note">PDF or TXT. Your CV is read in this browser and is not uploaded anywhere.</p>
+
+<div id="profile">
+<hr>
+<label for="myyears">Your experience (years), taken from your CV</label>
+<input id="myyears" type="number" min="0" max="50" step="1" placeholder="not detected">
+<p id="yearsnote" class="note"></p>
+<label>Terms found most often in your CV</label>
+<div id="cvterms"></div>
+</div>
 </div>
 
 <div class="card">
-<h3>💼 2. Job Details</h3>
+<h3>2. Filters</h3>
+<p class="note">All filters start empty. Leave a filter blank to ignore it.</p>
 
-<label>Job Title</label>
-<input id="title" placeholder="e.g. Supply Chain Manager">
+<label for="f_kw">Job keywords (separate several with commas)</label>
+<input id="f_kw" placeholder="e.g. order management, procurement">
 
-<label>Company</label>
-<input id="company" placeholder="Company name">
+<label for="f_loc">Location contains</label>
+<input id="f_loc" placeholder="e.g. Chennai, India, Remote">
+<label class="check"><input type="checkbox" id="f_world">Also show worldwide / anywhere remote jobs</label>
 
-<label>Job Location</label>
-<select id="location">
-<option>Chennai</option>
-<option>Remote India</option>
-<option>Bengaluru</option>
-<option>Hyderabad</option>
-<option>Coimbatore</option>
-<option>India</option>
+<div class="row">
+<div>
+<label for="f_source">Source</label>
+<select id="f_source"><option value="">Any source</option></select>
+</div>
+<div>
+<label for="f_days">Posted within</label>
+<select id="f_days">
+<option value="">Any time</option>
+<option value="1">Last 24 hours</option>
+<option value="3">Last 3 days</option>
+<option value="7">Last 7 days</option>
+<option value="14">Last 14 days</option>
+<option value="30">Last 30 days</option>
+</select>
+</div>
+</div>
+
+<label for="f_min">Minimum match: <span id="f_min_val">0%</span></label>
+<input type="range" id="f_min" min="0" max="100" step="5" value="0">
+
+<label class="check"><input type="checkbox" id="f_hide">Hide jobs that ask for more experience than I have</label>
+
+<label for="f_sort">Sort by</label>
+<select id="f_sort">
+<option value="score">Best match</option>
+<option value="date">Newest</option>
 </select>
 
-<label>Required Experience (years, if mentioned)</label>
-<input id="years" type="number" min="0" max="50" placeholder="e.g. 8">
+<button class="secondary" id="searchbtn" type="button">Search on job sites with these filters</button>
+<div id="searchlinks"></div>
+</div>
 
-<label>Paste Job Description</label>
+<div class="card">
+<h3>Jobs ranked against your CV</h3>
+<p id="jobmeta" class="note"></p>
+<div id="joblist"><p class="note">Loading jobs...</p></div>
+</div>
+
+<div class="card">
+<h3>3. Check one specific job</h3>
+<p class="note">Paste any job description to see how your CV matches it.</p>
+
+<label for="title">Job title</label>
+<input id="title" placeholder="Job title">
+
+<label for="company">Company (optional)</label>
+<input id="company" placeholder="Company name">
+
+<label for="years">Experience the job asks for (optional)</label>
+<input id="years" type="number" min="0" max="50" placeholder="Leave blank to detect from the description">
+
+<label for="jd">Job description</label>
 <textarea id="jd" placeholder="Paste the full job description here..."></textarea>
 
-<button onclick="analyzeJob()">🧠 Analyze Job Match</button>
+<button id="analyzebtn" type="button">Analyze job match</button>
 </div>
 
 <div id="report"></div>
 
-<div class="card">
-<h3>🔎 Search Jobs</h3>
-<p class="note">Search job openings on external job sites.</p>
-<button class="secondary" onclick="searchJobs()">Open Job Search Sites</button>
-<div id="searchlinks"></div>
-</div>
-
-<p class="note">
-Match score is an estimate based on keyword coverage and experience requirements. It is not an AI recruiter decision.
-</p>
+<p class="note">Scores are keyword-based estimates calculated from your CV and the job text. They are not a recruiter's decision.</p>
 
 </main>
 
-<script>
-if(window.pdfjsLib){
- pdfjsLib.GlobalWorkerOptions.workerSrc =
- "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-}
-
-let cvText = "";
-
-document.getElementById("cv").addEventListener("change",async function(){
- const file=this.files[0];
- if(!file)return;
- const status=document.getElementById("cvstatus");
- status.textContent="Reading CV...";
-
- try{
-  if(file.name.toLowerCase().endsWith(".txt")){
-   cvText=await file.text();
-  }else if(file.name.toLowerCase().endsWith(".pdf")){
-   const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
-   let text="";
-   for(let i=1;i<=pdf.numPages;i++){
-    const page=await pdf.getPage(i);
-    const content=await page.getTextContent();
-    text+=content.items.map(x=>x.str).join(" ")+" ";
-   }
-   cvText=text;
-  }else{
-   throw new Error("Unsupported file");
-  }
-  status.textContent="✅ CV loaded. "+cvText.length+" characters extracted.";
- }catch(e){
-  cvText="";
-  status.textContent="❌ CV could not be read. Try a text-based PDF or TXT file.";
- }
-});
-
-const skillGroups={
- "Supply Chain":["supply chain","supply chain management","planning","forecast","demand planning","supply planning","logistics"],
- "Procurement":["procurement","purchasing","sourcing","purchase order","po execution","rfq","quotation","negotiation"],
- "Order Management":["order management","order processing","sales order","order fulfillment","order fulfilment"],
- "Inventory":["inventory","stock management","inventory control","warehouse","replenishment","material planning"],
- "ERP":["erp","ifs","oracle","sap","coral","salesforce"],
- "Manufacturing":["manufacturing","production","work order","work orders","bom","bill of materials","wip","ec n","eco","ecn"],
- "Vendor Management":["vendor management","supplier management","supplier coordination","vendor coordination"],
- "Operations":["operations","operational excellence","process improvement","operations support","sla"],
- "Excel & Reporting":["excel","advanced excel","pivot","vlookup","reporting","dashboard","macros"],
- "Cross-functional":["cross functional","stakeholder","r&d","quality","production planning","coordination"]
-};
-
-function escapeHTML(str){
- return String(str).replace(/[&<>"']/g,function(m){
-  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m];
- });
-}
-
-function analyzeJob(){
- if(!cvText){alert("Please upload your CV first.");return;}
- const title=document.getElementById("title").value.trim();
- const company=document.getElementById("company").value.trim();
- const jd=document.getElementById("jd").value.trim();
- const yearsInput=document.getElementById("years").value;
- if(!jd){alert("Please paste the Job Description.");return;}
-
- const combined=(title+" "+jd).toLowerCase();
- const cv=cvText.toLowerCase();
-
- let matched=[],missing=[];
- Object.entries(skillGroups).forEach(([group,terms])=>{
-  const inJD=terms.some(t=>combined.includes(t));
-  if(!inJD)return;
-  const cvFound=terms.filter(t=>cv.includes(t));
-  const cvMissed=terms.filter(t=>combined.includes(t)&&!cv.includes(t));
-  if(cvFound.length)matched.push(group+" ("+cvFound.slice(0,3).join(", ")+")");
-  if(cvMissed.length)missing.push(group+" ("+cvMissed.slice(0,3).join(", ")+")");
- });
-
- const jdTerms=[];
- Object.values(skillGroups).flat().forEach(term=>{
-  if(combined.includes(term)&&!jdTerms.includes(term))jdTerms.push(term);
- });
- const matchedTerms=jdTerms.filter(t=>cv.includes(t));
- const keywordScore=jdTerms.length?Math.round(matchedTerms.length/jdTerms.length*100):0;
-
- const cvYears=11;
- const required=Number(yearsInput||0);
- let expScore=100, risk="Experience requirement not specified", riskClass="yellow";
-
- if(required>0){
-  if(cvYears>=required){
-   expScore=100;
-   risk="Experience requirement appears suitable";
-   riskClass="green";
-  }else{
-   expScore=Math.max(30,Math.round(cvYears/required*100));
-   risk="Possible experience gap";
-   riskClass="yellow";
-  }
- }
-
- const finalScore=jdTerms.length?
- Math.round(keywordScore*0.8+expScore*0.2):expScore;
-
- let verdict,verdictClass;
- if(finalScore>=75){verdict="🟢 APPLY";verdictClass="green";}
- else if(finalScore>=50){verdict="🟡 MAYBE";verdictClass="yellow";}
- else{verdict="🔴 LOW MATCH";verdictClass="red";}
-
- let seniority="Not enough information";
- if(required>0){
-  if(required>=8)seniority="Senior-level role";
-  else if(required>=5)seniority="Mid-level role";
-  else if(required>=3)seniority="Experienced individual contributor";
-  else seniority="Junior / entry-level role";
- }
-
- let html="<div class='card'><h2>📊 Job Match Report</h2>";
- html+="<div class='score'>"+finalScore+"% Match</div>";
- html+="<h2 class='"+verdictClass+"'>"+verdict+"</h2>";
- html+="<p><b>"+escapeHTML(title||"Job role")+"</b></p>";
- if(company)html+="<p>🏢 "+escapeHTML(company)+"</p>";
- html+="<hr><h3>🧩 Skill Match</h3>";
- html+="<p>Keyword coverage: "+keywordScore+"%</p>";
- html+="<p>Matched JD keywords: "+matchedTerms.length+" / "+jdTerms.length+"</p>";
- if(matched.length){
-  html+="<h4 class='green'>Skills / categories detected in CV</h4>";
-  matched.forEach(s=>html+="<span class='tag'>"+escapeHTML(s)+"</span>");
- }
- if(missing.length){
-  html+="<h4 class='yellow'>Potential missing keywords</h4>";
-  missing.forEach(s=>html+="<span class='tag'>"+escapeHTML(s)+"</span>");
- }
- html+="<hr><h3>👔 Experience Review</h3>";
- html+="<p>Profile experience used for comparison: 11+ years</p>";
- html+="<p>Role seniority: "+seniority+"</p>";
- html+="<p class='"+riskClass+"'>"+risk+"</p>";
- html+="<hr><h3>💡 Recommendation</h3>";
- if(finalScore>=75){
-  html+="<p>Apply if the responsibilities, salary and location align. Tailor your CV to the important JD requirements.</p>";
- }else if(finalScore>=50){
-  html+="<p>Review the missing keywords and responsibilities. If your actual experience covers them, update your CV and consider applying.</p>";
- }else{
-  html+="<p>Low keyword match. Check the role carefully before spending time on an application.</p>";
- }
- html+="<p class='note'>This is a heuristic screening estimate. It cannot verify actual skill proficiency, employer legitimacy, or guarantee recruitment outcomes. The profile experience is set to 11 years for this prototype.</p></div>";
-
- document.getElementById("report").innerHTML=html;
-}
-
-function searchJobs(){
- const keyword=document.getElementById("title").value.trim()||"Supply Chain Procurement Order Management";
- const location=document.getElementById("location").value;
- const links=[
- {name:"LinkedIn Jobs",url:"https://www.linkedin.com/jobs/search/?keywords="+encodeURIComponent(keyword+" "+location)},
- {name:"Indeed",url:"https://in.indeed.com/jobs?q="+encodeURIComponent(keyword)+"&l="+encodeURIComponent(location)},
- {name:"Naukri",url:"https://www.naukri.com/"+encodeURIComponent(keyword.toLowerCase().replace(/ /g,"-"))+"-jobs-in-"+encodeURIComponent(location.toLowerCase().replace(/ /g,"-"))},
- {name:"Google Jobs",url:"https://www.google.com/search?q="+encodeURIComponent(keyword+" jobs "+location)}
- ];
- let html="";
- links.forEach(l=>{
-  html+="<div class='result'><b>"+l.name+"</b><a href='"+l.url+"' target='_blank' rel='noopener'>Search "+l.name+" ↗</a></div>";
- });
- document.getElementById("searchlinks").innerHTML=html;
-}
-</script>
+<script src="matcher.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
